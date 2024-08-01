@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 // Define a home handler function which writes a byte slice containing
@@ -23,6 +25,18 @@ func home(w http.ResponseWriter, r *http.Request) {
 }
 
 func showSnippet(w http.ResponseWriter, r *http.Request) {
+	// Extract the value of the id parameter from the query string and try to
+	// convert it to an integer using the strconv.Atoi() function. If it can't
+	// be converted to an integer, or the value is less than 1, we return a 404
+	// not found response.
+	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+	// Use the fmt.Fprintf() function to interpolate the id value with our respo
+	// and write it to the http.ResponseWriter.
+	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
 	w.Write([]byte("Display a specific snippet..."))
 }
 
@@ -36,9 +50,11 @@ func createSnippet(w http.ResponseWriter, r *http.Request) {
 		// response header map. The first parameter is the header name, and
 		// the second parameter is the header value. Lets	 the user know
 		// which request methods are supported for that particular URL.
+		// must be sent before WriteHeader and Write
 		w.Header().Set("Allow", "POST")
-		w.WriteHeader(405)
-		w.Write([]byte("Method Not Allowed"))
+		// w.WriteHeader(405)
+		// w.Write([]byte("Method Not Allowed"))
+		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
 
