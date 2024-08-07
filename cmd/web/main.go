@@ -51,7 +51,7 @@ func main() {
 	mux.HandleFunc("/snippet/create", app.createSnippet)
 
 	// Create a file server to serve static files.
-	fileServer := http.FileServer(http.Dir("../../ui/static"))
+	fileServer := http.FileServer(http.Dir("./ui/static"))
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
 	// Initialize and start a new HTTP server.

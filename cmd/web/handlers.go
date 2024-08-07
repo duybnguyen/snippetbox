@@ -9,59 +9,51 @@ import (
 	"github.com/duybnguyen/snippetbox/pkg/models"
 )
 
-// http.ResponseWriter provides methods for assembling a HTTP response and sending it to the user
-//http.Request is a struct which holds information about the current request (such as the HTTP method and the URL being requested)
-
+// The home handler function.
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	// If we don't return, the handler would keep executing
 	if r.URL.Path != "/" {
-		app.notFound(w) //implemented in helpers.go
+		app.notFound(w)
 		return
 	}
 
-	s, err := app.snippets.Latest()
+	snippets, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
-	for _, snippet := range s {
-		fmt.Fprintf(w, "%v\n", snippet)
-	}
-	// Initialize a slice containing the paths to the two files. Note that the
-	// home.page.tmpl file must be the *first* file in the slice.
+
+	// Define the paths to the template files.
 	files := []string{
-		"../../ui/html/home.page.tmpl",
-		"../../ui/html/base.layout.tmpl",
-		"../../ui/html/footer.partial.tmpl",
+		"./ui/html/home.page.tmpl",
+		"./ui/html/base.layout.tmpl",
+		"./ui/html/footer.partial.tmpl",
 	}
-	// Use the template.ParseFiles() function to read the files and store the
-	// templates in a template set.
+
+	// Parse the template files.
 	ts, err := template.ParseFiles(files...)
 	if err != nil {
-		app.errorLog.Println(err.Error())
-		app.serverError(w, err) //implemented in helpers.go
+		app.serverError(w, err)
 		return
 	}
-	// We then use the Execute() method on the template set to write the template
-	// content as the response body.
-	err = ts.Execute(w, nil)
+
+	// Execute the template.
+	err = ts.Execute(w, snippets)
 	if err != nil {
-		app.errorLog.Println(err.Error())
-		app.serverError(w, err) //implemented in helpers.go
+		app.serverError(w, err)
 	}
 }
 
+// The showSnippet handler function.
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
-
-	// Extract the value of the id parameter from the query string and try to
-	// convert it to an integer using the strconv.Atoi() function.
+	// Extract the "id" parameter from the query string and convert it to an integer.
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || id < 1 {
-		app.notFound(w) //implemented in helpers.go
+		app.notFound(w)
 		return
 	}
 
-	s, err := app.snippets.Get(id)
+	// Retrieve the snippet from the database.
+	snippet, err := app.snippets.Get(id)
 	if err == models.ErrNoRecord {
 		app.notFound(w)
 		return
@@ -70,43 +62,50 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	files := []string {
-		"../../ui/html/show.page.html",
-		"../../ui/html/base.layout.tmpl",
-		"../../ui/html/footer.partial.tmpl"
+	// Create an instance of a templateData struct holding the snippet data.
+	data := &templateData{Snippet: snippet}
+
+	// Define the paths to the template files.
+	files := []string{
+		"./ui/html/show.page.tmpl",
+		"./ui/html/base.layout.tmpl",
+		"./ui/html/footer.partial.tmpl",
 	}
 
-	ts.err := template.ParseFiles(files...)
+	// Parse the template files.
+	ts, err := template.ParseFiles(files...)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
-	err := ts.Execute(w, s)
+	// Execute the template.
+	err = ts.Execute(w, data)
 	if err != nil {
 		app.serverError(w, err)
 	}
 }
 
+// The createSnippet handler function.
 func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		// must set before WriteHeader and Write
 		w.Header().Set("Allow", "POST")
-		// w.WriteHeader(405)
-		// w.Write([]byte("Method Not Allowed"))
-		app.clientError(w, http.StatusMethodNotAllowed) //implemented in helpers.go
+		app.clientError(w, http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Define the snippet data.
 	title := "0 snail"
 	content := "0 snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n- Kobayashi"
 	expires := "7"
 
+	// Insert the snippet into the database.
 	id, err := app.snippets.Insert(title, content, expires)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/snippet?id=%d", id), http.StatusSeeOther)
 
+	// Redirect to the newly created snippet.
+	http.Redirect(w, r, fmt.Sprintf("/snippet?id=%d", id), http.StatusSeeOther)
 }
