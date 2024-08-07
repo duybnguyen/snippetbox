@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/duybnguyen/snippetbox/pkg/models/mysql"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -14,6 +15,7 @@ import (
 type application struct {
 	errorLog *log.Logger
 	infoLog  *log.Logger
+	snippets *mysql.SnippetModel // allow us to make the SnippetModel object available to our handlers.
 }
 
 func main() {
@@ -39,6 +41,7 @@ func main() {
 	app := &application{
 		errorLog: errorLog,
 		infoLog:  infoLog,
+		snippets: &mysql.SnippetModel{DB: db},
 	}
 
 	// Initialize a new servemux and register handlers.
@@ -64,6 +67,7 @@ func main() {
 }
 
 // openDB initializes and returns a new database connection pool.
+// The sql.Open() function doesn’t actually create any connections, all it does is initialize the pool for future use. Actual connections to the database are established lazily, as and when needed for the first time. So to verify that everything is set up correctly we need to use the db.Ping() method to create a connection and check for any errors.
 func openDB(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
