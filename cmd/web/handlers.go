@@ -22,6 +22,8 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data := &templateData{Snippets: snippets}
+
 	// Define the paths to the template files.
 	files := []string{
 		"./ui/html/home.page.tmpl",
@@ -37,7 +39,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Execute the template.
-	err = ts.Execute(w, snippets)
+	err = ts.Execute(w, data)
 	if err != nil {
 		app.serverError(w, err)
 	}
